@@ -67,3 +67,22 @@ OCPUTask oTask = OCPU.R()
 OCPUResult oResult = oTask.execute();
 Map oData = oResult.data();
 ```
+
+The following code snippet demonstrates the execution of the R dpu.mobility::geodistance function by [openmhealth on github](https://github.com/openmhealth/dpu.mobility):
+
+```
+import io.onetapbeyond.opencpu.r.executor.*;
+
+Map data = new HashMap();
+data.put("long", Arrays.asList(-74.0064,-118.2430,-74.0064));
+data.put("lat", Arrays.asList(40.7142,34.0522,40.7142));
+OCPUTask oTask = OCPU.R()
+                     .user("openmhealth")
+                     .pkg("dpu.mobility")
+                     .function("geodistance")
+                     .input(data)
+                     .github();
+OCPUResult oResult = oTask.execute();
+Map oData = oResult.data();
+```
+
