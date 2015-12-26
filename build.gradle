@@ -1,0 +1,32 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+group = "io.onetapbeyond"
+archivesBaseName = "opencpu-r-executor"
+version = "1.0"
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'com.google.code.gson:gson:2.4'
+  testCompile "junit:junit:4.11"
+}
+
+jar {
+  manifest {
+    attributes("Implementation-Title": archivesBaseName,
+               "Implementation-Version": version)
+  }
+}
+
+javadoc {
+    title = "opencpu-r-executor"
+    options.overview = "src/main/java/overview.html"
+    exclude "io/onetapbeyond/opencpu/r/executor/results/**/*.java"
+    exclude "io/onetapbeyond/opencpu/r/executor/tasks/**/*.java"
+    exclude "io/onetapbeyond/opencpu/r/executor/util/**/*.java"
+}

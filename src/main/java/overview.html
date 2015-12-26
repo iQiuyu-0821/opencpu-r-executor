@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+</head>
+<body bgcolor="white">
+
+<p>
+A Java library providing a lightweight solution (~13 kB jar) for integrating
+R analytics executed on the
+<a href="https://www.opencpu.org" target="_blank">OpenCPU server</a> into any
+application running on the JVM.
+The OpenCPU server provides an execution environment for scientific
+computing, reproducible research and data analysis based on R. To learn
+more about the OpenCPU server, see 
+<a href="https://www.opencpu.org" target="_blank">here</a>. To learn
+more about the general capabilities of the R programming language and
+environment for statistical computing, see 
+<a href="https://www.r-project.org/about.html" target="_blank">here</a>.
+
+<p><br>
+
+<p>
+This library provides the following OpenCPU integration support:
+<ul>
+<li>Simplified R code execution using {@link io.onetapbeyond.opencpu.r.executor.OCPUTask}, no boilerplate {@link java.net} code required.
+<li>OpenCPU, CRAN, GitHub, Gist and Bioconductor R package support.
+<li>Distributed cluster environment support through automatic {@link io.onetapbeyond.opencpu.r.executor.OCPUTask} and {@link io.onetapbeyond.opencpu.r.executor.OCPUResult} serialization.
+</ul>
+<p><br>
+
+<p>
+When working with this library the basic usage pattern is as follows:
+<pre> 
+OCPUTask oTask = OCPU.R().pkg(pName).function(fName).input(fInput).library();
+OCPUResult oResult = oTask.execute();
+Map oData = oResult.data();
+</pre>
+</p><br>
+
+
+<p>
+For example, the following code snippet demonstrates the execution of the
+R stats::rnorm function:
+<pre>
+Map data = new HashMap();
+data.put("n", 10);
+data.put("mean", 5);
+OCPUTask oTask = OCPU.R().pkg("stats").function("rnorm").input(data).library();
+OCPUResult oResult = oTask.execute();
+Map oData = oResult.data();
+</pre>
+</p><br>
+
+</body>
+</html>
