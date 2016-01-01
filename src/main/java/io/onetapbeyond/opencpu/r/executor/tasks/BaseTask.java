@@ -33,7 +33,7 @@ public abstract class BaseTask implements OCPUTask {
 	protected String output;
 	protected String endpoint;
 
-	private String[] resultData = null;
+	private String[] outputData = null;
 
 	/*
 	 * Execute the R task.
@@ -97,15 +97,15 @@ public abstract class BaseTask implements OCPUTask {
 					 * Function call has single JSON response. Capture
 					 * in serializable form: ["function", "jsonValue"].
 					 */
-					resultData = new String[2];
-					resultData[0] = function;
-					resultData[1] = objAsJson;
+					outputData = new String[2];
+					outputData[0] = function;
+					outputData[1] = objAsJson;
 
 					/*
 					 * Build execution result for successful function call.
 					 */
 					oResult =
-						new OCPUResultImpl(true, resultData, null,
+						new OCPUResultImpl(true, input, outputData, null,
 							null, (System.currentTimeMillis()-execstart));
 
 				} else {
@@ -117,7 +117,7 @@ public abstract class BaseTask implements OCPUTask {
 
 					if(output != null) {
 
-						resultData = new String[2];
+						outputData = new String[2];
 
 						/*
 						 * For the requested object, capture in
@@ -134,20 +134,20 @@ public abstract class BaseTask implements OCPUTask {
 							 * Capture in serializable form:
 							 * ["output", "jsonValue"].
 							 */
-							resultData[0] = output;
-							resultData[1] = objAsJson;
+							outputData[0] = output;
+							outputData[1] = objAsJson;
 
 						} catch(Exception dex) {
 							// Swallow, store null, continue.
-							resultData[0] = output;
-							resultData[1] = null;
+							outputData[0] = output;
+							outputData[1] = null;
 						}
 
 						/*
 						 * Build execution result for successful script call.
 						 */
 						oResult =
-							new OCPUResultImpl(true, resultData, null,
+							new OCPUResultImpl(true, input, outputData, null,
 								null, (System.currentTimeMillis()-execstart));
 
 					} // output != null
@@ -168,12 +168,12 @@ public abstract class BaseTask implements OCPUTask {
 	            OCPUException oEx = new OCPUException(causeMsg.toString());
 
 	            oResult =
-	            	new OCPUResultImpl(false, null, errMsg.toString(), oEx, 0L);
+	            	new OCPUResultImpl(false, input, null, errMsg.toString(), oEx, 0L);
 	        }
 
 		} catch(Exception ex) {
 			String msg = "Task execution failed.";
-            oResult = new OCPUResultImpl(false, null, msg, ex, 0L);
+            oResult = new OCPUResultImpl(false, input, null, msg, ex, 0L);
 		}
 
 		return oResult;

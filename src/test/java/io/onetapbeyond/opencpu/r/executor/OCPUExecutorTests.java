@@ -31,7 +31,7 @@ public class OCPUExecutorTests {
     }
 
     @Test
-    public void testLibraryFunctionCall() throws OCPUException {
+    public void testLibraryFunctionRnormCall() throws OCPUException {
 
         Map data = new HashMap();
         data.put("n", 10);
@@ -43,13 +43,42 @@ public class OCPUExecutorTests {
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertTrue(oResult.success());
-        assertNotNull(oResult.data());
+        assertNotNull(oResult.input());
+        assertEquals(oResult.input().size(), data.size());
+        assertNotNull(oResult.output());
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
 
     @Test
-    public void testGithubFunctionCall() throws OCPUException {
+    public void testLibraryFunctionTvScoreCall() throws OCPUException {
+
+        Map data = new HashMap();
+        Map jane = new HashMap();
+        jane.put("age", 26);
+        jane.put("marital", "MARRIED");
+        Map john = new HashMap();
+        john.put("age", 56);
+        john.put("marital", "DIVORCED");
+        List people = Arrays.asList(jane, john);
+        data.put("input", people);
+
+        OCPUTask oTask = OCPU.R()
+                             .pkg("tvscore")
+                             .function("tv")
+                             .input(data)
+                             .library();
+        OCPUResult oResult = oTask.execute(endpoint);
+        assertTrue(oResult.success());
+        assertNotNull(oResult.input());
+        assertEquals(oResult.input().size(), data.size());
+        assertNotNull(oResult.output());
+        assertNull(oResult.error());
+        assertNull(oResult.cause());
+    }
+
+    @Test
+    public void testGithubFunctionGeodistanceCall() throws OCPUException {
 
         Map data = new HashMap();
         data.put("long", Arrays.asList(-74.0064,-118.2430,-74.0064));
@@ -62,39 +91,43 @@ public class OCPUExecutorTests {
                              .github();
         OCPUResult oResult = oTask.execute(endpoint);
         assertTrue(oResult.success());
-        assertNotNull(oResult.data());
+        assertNotNull(oResult.input());
+        assertEquals(oResult.input().size(), data.size());
+        assertNotNull(oResult.output());
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
 
     @Test
-    public void testLibraryFunctionCallMissingPackage() throws OCPUException {
+    public void testLibraryFunctionRnormCallMissingPackage() throws OCPUException {
 
         OCPUTask oTask = OCPU.R()
                              .function("rnorm")
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertFalse(oResult.success());
-        assertNull(oResult.data());
+        assertNull(oResult.input());
+        assertNull(oResult.output());
         assertNotNull(oResult.error());
         assertNotNull(oResult.cause());
     }
 
     @Test
-    public void testLibraryFunctionCallMissingFunction() throws OCPUException {
+    public void testLibraryFunctionMissingCall() throws OCPUException {
 
         OCPUTask oTask = OCPU.R()
                              .pkg("stats")
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertFalse(oResult.success());
-        assertNull(oResult.data());
+        assertNull(oResult.input());
+        assertNull(oResult.output());
         assertNotNull(oResult.error());
         assertNotNull(oResult.cause());
     }
 
     @Test
-    public void testLibraryFunctionCallMissingParameters() throws OCPUException {
+    public void testLibraryFunctionRnormCallMissingParameters() throws OCPUException {
 
         OCPUTask oTask = OCPU.R()
                              .pkg("stats")
@@ -102,13 +135,14 @@ public class OCPUExecutorTests {
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertFalse(oResult.success());
-        assertNull(oResult.data());
+        assertNull(oResult.input());
+        assertNull(oResult.output());
         assertNotNull(oResult.error());
         assertNotNull(oResult.cause());
     }
 
     @Test
-    public void testScriptCall() throws OCPUException {
+    public void testScriptCh01Call() throws OCPUException {
 
         Map data = new HashMap();
         OCPUTask oTask = OCPU.R()
@@ -117,33 +151,36 @@ public class OCPUExecutorTests {
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertTrue(oResult.success());
-        assertNotNull(oResult.data());
+        assertNull(oResult.input());
+        assertNotNull(oResult.output());
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
 
     @Test
-    public void testLibraryScriptCallMissingPackage() throws OCPUException {
+    public void testLibraryScriptCh01CallMissingPackage() throws OCPUException {
 
         OCPUTask oTask = OCPU.R()
                              .script("ch01.R", "dd")
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertFalse(oResult.success());
-        assertNull(oResult.data());
+        assertNull(oResult.input());
+        assertNull(oResult.output());
         assertNotNull(oResult.error());
         assertNotNull(oResult.cause());
     }
 
     @Test
-    public void testLibraryScriptCallMissingScript() throws OCPUException {
+    public void testLibraryScriptMissingCall() throws OCPUException {
 
         OCPUTask oTask = OCPU.R()
                              .pkg("stats")
                              .library();
         OCPUResult oResult = oTask.execute(endpoint);
         assertFalse(oResult.success());
-        assertNull(oResult.data());
+        assertNull(oResult.input());
+        assertNull(oResult.output());
         assertNotNull(oResult.error());
         assertNotNull(oResult.cause());
     }
