@@ -13,7 +13,7 @@ environment for statistical computing, see [here](https://www.r-project.org/abou
 ### Gradle Dependency
 
 ```
-compile 'io.onetapbeyond:opencpu-r-executor:1.0'
+compile 'io.onetapbeyond:opencpu-r-executor:1.1'
 ```
 
 ### Maven Dependency
@@ -22,7 +22,7 @@ compile 'io.onetapbeyond:opencpu-r-executor:1.0'
 <dependency>
   <groupId>io.onetapbeyond</groupId>
   <artifactId>opencpu-r-executor</artifactId>
-  <version>1.0</version>
+  <version>1.1</version>
 </dependency>
 ```
 
