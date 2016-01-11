@@ -45,7 +45,7 @@ public class OCPUExecutorTests {
         assertTrue(oResult.success());
         assertNotNull(oResult.input());
         assertEquals(oResult.input().size(), data.size());
-        assertNotNull(oResult.output());
+        assertNotNull(oResult.output().get("rnorm"));
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
@@ -72,7 +72,7 @@ public class OCPUExecutorTests {
         assertTrue(oResult.success());
         assertNotNull(oResult.input());
         assertEquals(oResult.input().size(), data.size());
-        assertNotNull(oResult.output());
+        assertNotNull(oResult.output().get("tv"));
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
@@ -93,7 +93,7 @@ public class OCPUExecutorTests {
         assertTrue(oResult.success());
         assertNotNull(oResult.input());
         assertEquals(oResult.input().size(), data.size());
-        assertNotNull(oResult.output());
+        assertNotNull(oResult.output().get("geodistance"));
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }
@@ -152,7 +152,7 @@ public class OCPUExecutorTests {
         OCPUResult oResult = oTask.execute(endpoint);
         assertTrue(oResult.success());
         assertNull(oResult.input());
-        assertNotNull(oResult.output());
+        assertNotNull(oResult.output().get("dd"));
         assertNull(oResult.error());
         assertNull(oResult.cause());
     }

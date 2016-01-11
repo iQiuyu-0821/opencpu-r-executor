@@ -19,11 +19,13 @@ import static io.onetapbeyond.opencpu.r.executor.util.OCPUConstants.*;
 import io.onetapbeyond.opencpu.r.executor.*;
 import io.onetapbeyond.opencpu.r.executor.results.OCPUResultImpl;
 import java.io.*;
-import java.net.*;
 import java.util.*;
+import okhttp3.*;
 import com.google.gson.*;
 
 public abstract class BaseTask implements OCPUTask {
+
+	private static final OkHttpClient okClient = new OkHttpClient();
 
 	protected String user; 
 	protected String pkg;
@@ -63,113 +65,85 @@ public abstract class BaseTask implements OCPUTask {
 			validate();
 
 			String apiEndpoint = serverEndpoint + endpoint;
-	        HttpURLConnection conn = connect(apiEndpoint,
-	        								 input,
-	        								 JSON_REQ_TYPE,
-	        								 METHOD_POST);
+	        Response response = request(apiEndpoint,
+	        							input,
+	        							METHOD_POST);
 
-	        int respCode = conn.getResponseCode();
-			if(respCode == HttpURLConnection.HTTP_OK ||
-				respCode == HttpURLConnection.HTTP_CREATED) {
+	        if(!response.isSuccessful()) {
+				throw new OCPUException(apiEndpoint + 
+					" execution failed, " + response.message());
+			}
 
-				String ocpuSession = conn.getHeaderField(OCPU_X_SESSION);
+			String ocpuSession = response.header(OCPU_X_SESSION);
 
-	        	if(endpoint.endsWith(JSON)) {
+        	if(endpoint.endsWith(JSON)) {
 
-		        	/*
-		        	 * On OpenCPU function call, capture R function
-		        	 * return value on directly on response.
-		        	 */
+	        	/*
+	        	 * On OpenCPU function call, capture R function
+	        	 * return value on directly on response.
+	        	 */
+				String objAsJson = response.body().string();
 
-			        BufferedReader respBuf = new BufferedReader(
-			        	new InputStreamReader(conn.getInputStream(),"utf-8"));  
-			 
-			        StringBuilder respData = new StringBuilder();  
-		            String text = null;
-		            while ((text = respBuf.readLine()) != null) {  
-			            respData.append(text + "\n");  
-		            }
-					respBuf.close();
+				/*
+				 * Function call has single JSON response. Capture
+				 * in serializable form: ["function", "jsonValue"].
+				 */
+				outputData = new String[2];
+				outputData[0] = function;
+				outputData[1] = objAsJson;
 
-					String objAsJson = respData.toString();
+				/*
+				 * Build execution result for successful function call.
+				 */
+				oResult =
+					new OCPUResultImpl(true, input, outputData, null,
+						null, (System.currentTimeMillis()-execstart));
 
-					/*
-					 * Function call has single JSON response. Capture
-					 * in serializable form: ["function", "jsonValue"].
-					 */
+			} else {
+
+	        	/*
+	        	 * On OpenCPU script call, capture R script
+	        	 * return values on request.
+	        	 */
+
+				if(output != null) {
+
 					outputData = new String[2];
-					outputData[0] = function;
-					outputData[1] = objAsJson;
 
 					/*
-					 * Build execution result for successful function call.
+					 * For the requested object, capture in
+					 * serializable form: ["output", "jsonValue"].
+					 */
+					int objectIndex = 0;
+
+					try {
+
+						String objAsJson = fetchOutput(output,
+													   ocpuSession,
+													   serverEndpoint);
+						/*
+						 * Capture in serializable form:
+						 * ["output", "jsonValue"].
+						 */
+						outputData[0] = output;
+						outputData[1] = objAsJson;
+
+					} catch(Exception dex) {
+						// Swallow, store null, continue.
+						outputData[0] = output;
+						outputData[1] = null;
+					}
+
+					/*
+					 * Build execution result for successful script call.
 					 */
 					oResult =
 						new OCPUResultImpl(true, input, outputData, null,
 							null, (System.currentTimeMillis()-execstart));
 
-				} else {
+				} // output != null
 
-		        	/*
-		        	 * On OpenCPU script call, capture R script
-		        	 * return values on request.
-		        	 */
-
-					if(output != null) {
-
-						outputData = new String[2];
-
-						/*
-						 * For the requested object, capture in
-						 * serializable form: ["output", "jsonValue"].
-						 */
-						int objectIndex = 0;
-
-						try {
-
-							String objAsJson = fetchOutput(output,
-														   ocpuSession,
-														   serverEndpoint);
-							/*
-							 * Capture in serializable form:
-							 * ["output", "jsonValue"].
-							 */
-							outputData[0] = output;
-							outputData[1] = objAsJson;
-
-						} catch(Exception dex) {
-							// Swallow, store null, continue.
-							outputData[0] = output;
-							outputData[1] = null;
-						}
-
-						/*
-						 * Build execution result for successful script call.
-						 */
-						oResult =
-							new OCPUResultImpl(true, input, outputData, null,
-								null, (System.currentTimeMillis()-execstart));
-
-					} // output != null
-
-				}
-
-			} else {
-
-	            StringBuffer causeMsg = new StringBuffer()
-	            						.append("HTTP ")
-	            						.append(conn.getResponseMessage())
-	            						.append(", error code ")
-	            						.append(conn.getResponseCode())
-	            						.append(".");
-	            StringBuffer errMsg = new StringBuffer(toString())
-	            						.append(": ")
-	            						.append(causeMsg);
-	            OCPUException oEx = new OCPUException(causeMsg.toString());
-
-	            oResult =
-	            	new OCPUResultImpl(false, input, null, errMsg.toString(), oEx, 0L);
-	        }
+			}
 
 		} catch(Exception ex) {
 			String msg = "Task execution failed.";
@@ -206,37 +180,40 @@ public abstract class BaseTask implements OCPUTask {
 			throw new OCPUException("Task specification incomplete.");
 	}
 
-	private HttpURLConnection connect(String apiEndpoint,
-									  String reqData,
-									  String reqType,
-									  String reqMethod) throws OCPUException {
+	private Response request(String apiEndpoint,
+							 String reqData,
+						     String reqMethod) throws OCPUException {
 
-        HttpURLConnection conn = null;
+        Response response = null;
 
-		try {
+		Request.Builder rb = new Request.Builder().url(apiEndpoint);
+		Request request = null;
 
-			URL apiCall = new URL(apiEndpoint);
-	        conn = (HttpURLConnection)apiCall.openConnection();
-
-	        conn.setRequestProperty("Content-Type", reqType);
-	        conn.setRequestProperty("Accept", ACCEPT_REQ_TYPE);
-	        conn.setRequestMethod(reqMethod);
-
-	        conn.setDoInput(true);
-
-	        if(reqData != null) {
-
-		        conn.setDoOutput(true);
-		        OutputStream os = conn.getOutputStream();
-		        os.write(reqData.getBytes("UTF-8"));
-	        	os.close();	
-	        }
-
-		} catch(Exception ex) {
-			throw new OCPUException(apiEndpoint + " execution failed.", ex);
+		if(reqMethod.equals(METHOD_POST)) {
+			if(reqData == null)
+				reqData = EMPTY_JSON;
+			request = rb.post(RequestBody.create(MEDIA_TYPE_JSON,
+												 reqData)).build();
+		} else
+		if(reqMethod.equals(METHOD_GET)) {
+			request = rb.build();
 		}
 
-		return conn;
+		try {
+			response = okClient.newCall(request).execute();
+			if(!response.isSuccessful()) {
+				throw new OCPUException(apiEndpoint +
+					" execution failed, " + response.message());
+			}
+		} catch(OCPUException oex) {
+			throw oex;
+		}catch(Exception ex) {
+			throw new OCPUException(apiEndpoint + " request failed." + ex);
+		}
+
+
+
+		return response;
 	}
 
 	/*
@@ -251,37 +228,24 @@ public abstract class BaseTask implements OCPUTask {
 
 		try {
 
-			String fetchEndpoint =
-				ocpuEndpoint +
+			String fetchEndpoint = ocpuEndpoint +
 				OCPU_SESSION_DATA(ocpuSession, objectName);
 
-	        HttpURLConnection dataConn = connect(fetchEndpoint,
-		        								 null,
-		        								 JSON_REQ_TYPE,
-		        								 METHOD_GET);
+	        Response response =
+	        	request(fetchEndpoint, null, METHOD_GET);
 
-	        int respCode = dataConn.getResponseCode();
-
-			if(respCode == HttpURLConnection.HTTP_OK) {
-
-		        BufferedReader respBuf = new BufferedReader(
-		        	new InputStreamReader(dataConn.getInputStream(), "utf-8"));  
-		 
-		        StringBuilder respData = new StringBuilder();  
-	            String text = null;
-	            while ((text = respBuf.readLine()) != null) {  
-		            respData.append(text + "\n");  
-	            }
-				respBuf.close();
-
-				objAsJson = respData.toString();
+	        if(!response.isSuccessful()) {
+				throw new OCPUException("OCPU fetch " +
+					objectName + " failed, " + response.message());
 			} else {
-
+				objAsJson = response.body().string();
 			}
 
+		} catch(OCPUException oex) {
+			throw oex;
 		} catch(Exception fex) {
 			throw new OCPUException("OCPU fetch " +
-										objectName + " failed.", fex);
+								objectName + " failed.", fex);
 		}
 
 		return objAsJson;
@@ -291,9 +255,9 @@ public abstract class BaseTask implements OCPUTask {
     private static final String METHOD_POST = "POST";
     private static final String METHOD_GET = "GET";
 	private static final String JSON = "json";
-    private static final String JSON_REQ_TYPE = "application/json";
-    private static final String ACCEPT_REQ_TYPE =
-									"application/json,text/plain";
+	private static final String EMPTY_JSON = "{}";
+	public static final MediaType MEDIA_TYPE_JSON
+      = MediaType.parse("application/json; charset=utf-8");
 	private static final String OCPU_X_SESSION = "X-ocpu-session";
 	public static final String OCPU_SESSION_BASE = "/tmp/";
 	public static final String OCPU_WORKSPACE = "/R/";
